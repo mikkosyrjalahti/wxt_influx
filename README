@@ -1,0 +1,3 @@
+A simple script to read data from Vaisala WXT510 weather station at Ursa ry Artjarvi
+observatory to InfluxDB.
+
