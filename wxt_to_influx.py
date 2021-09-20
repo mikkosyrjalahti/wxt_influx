@@ -1,4 +1,5 @@
 import asyncio
+import aiohttp
 
 def wxt_line_to_influx_line(wxt_line):
     influx_line_parts = ['wxt_artjarvi']
@@ -12,15 +13,12 @@ def wxt_line_to_influx_line(wxt_line):
         meas = part[0][0:2]
         value = float(part[3:-1])
         influx_line_parts.append(f'{meas}={value}')
-    return (' '.join(influx_line_parts))
+    return (' '.join(influx_line_parts) + '\n')
 
 async def wxt_client(password):
     reader, writer = await asyncio.open_connection(
         '127.0.0.1', 2011)
 
-    influx_reader, influx_writer = await asyncio.open_connection(
-        '127.0.0.1', 8083)                                         
-    
     writer.write(password.encode() + b'\r\n')
     await writer.drain()
 
@@ -30,7 +28,10 @@ async def wxt_client(password):
 
         influx_line = wxt_line_to_influx_line(data.decode('ascii'))
         print(f'To influx: {influx_line}')
-        influx_writer.write((influx_line+'\n').encode('ascii'))
+        #influx_writer.write((influx_line+'\n').encode('ascii'))
+        async with aiohttp.ClientSession() as session:
+            async with session.post("http://localhost:8086/write?db=weather", data=influx_line) as response:
+                print(f"Got HTTP {response.status_code}")
         #await influx_writer.drain()
 
     print('Close the connection')
